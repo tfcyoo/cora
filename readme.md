@@ -1,4 +1,4 @@
-##Dependencies
+## Dependencies
 * scklearn https://scikit-learn.org/stable/install.html
 * pytorch https://pytorch.org/
 * numpy https://numpy.org/install/
@@ -6,12 +6,12 @@
 * matplotlib https://matplotlib.org/stable/users/installing/index.html
 
 
-##How to run the code from command line:
+## How to run the code from command line:
 
 python cora.py
 
 
-##Approach
+## Approach
 
  - 3 Models are considered:
     - Neural Networks (NN)
