@@ -137,14 +137,15 @@ def accuracy(y_pred, y_test):
     exact_match_count = np.sum(y_test == y_pred)
     return exact_match_count/n
 
-
+#write result in csv file
 def write_result(papers_ids, predictions, target_classes, output):
 
-    data_nn = {"paper_id": papers_ids, "prediction": target_classes[predictions]}
-    data_nn = pd.DataFrame(data=data_nn)
-    data_nn.to_csv(path_or_buf = output, sep= "\t",  mode='a', index = False, header = False)
+    data = {"paper_id": papers_ids, "prediction": target_classes[predictions]}
+    data = pd.DataFrame(data=data)
+    data.to_csv(path_or_buf = output, sep= "\t",  mode='a', index = False, header = False)
 
 
+#delete files less performing models
 def clean_result(accuracies):
     outputs = ["output_nn.csv", "output_rf.csv", "output_nb.csv"]
     max_index = accuracies.index(max(accuracies))
@@ -154,7 +155,8 @@ def clean_result(accuracies):
         if i != max_index:
             os.remove(outputs[i])
 
-def training(X, y, rf, nb, target_classes):
+#training, testing with 10-fold CV
+def run(X, y, rf, nb, target_classes):
 
     #initialising 10-fold cross-validation
     n_splits = 10
@@ -266,7 +268,7 @@ def main():
     #features
     X = cora.drop(cora.columns[cora.shape[1]-1], axis = 1)
 
-    training(X, y, rf, nb, target_classes)
+    run(X, y, rf, nb, target_classes)
 
 
 if __name__== "__main__":
