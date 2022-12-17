@@ -66,10 +66,6 @@ def target_encode(cora):
     for i, target in enumerate(target_classes):
         cora.loc[cora.iloc[:, cora.shape[1]-1 ] == target, 'target'] = i
 
-
-    #remove old target column
-    #cora = cora.drop(cora.columns[[0, cora.shape[1]-1]], axis = 1)
-
     return target_classes
 
 
@@ -81,23 +77,19 @@ class PaperNetwork(nn.Module):
         self.input_size = input_size
         self.output_size = output_size
         self.hidden = 128
-        self.hidden_2 = 64
         self.linear = nn.Linear(input_size, self.hidden)
         self.relu = nn.ReLU()
-        self.linear_2 = nn.Linear(self.hidden, self.hidden_2)
-        self.linear_3 = nn.Linear(self.hidden, output_size)
+        self.linear_2 = nn.Linear(self.hidden, output_size)
 
     
     def forward(self, X):
         out = self.linear(X)
         out = self.relu(out)
-        #out = self.linear_2(out)
-        #out = self.relu(out)
-        return self.linear_3(out)
+        return self.linear_2(out)
 
 
 # MLP training function
-def train(paper_network, X_train, y, lr = 0.1, nber_iterations = 1000):
+def train(paper_network, X_train, y, lr = 0.12, nber_iterations = 750):
 
     #cross entropy loss
     loss = nn.CrossEntropyLoss()
@@ -120,10 +112,6 @@ def train(paper_network, X_train, y, lr = 0.1, nber_iterations = 1000):
 
         #update
         sgd.step()
-
-
-        if(i == nber_iterations-1):
-            print(f'iterations: {i+1}, loss: {l:.3f}')
 
         #reinitialize gradients
         sgd.zero_grad()
@@ -193,7 +181,10 @@ def training(X, y, rf, nb, target_classes):
     nber_classes = len(target_classes)
 
     #cross-validation
+    i = 1
     for train_idx, test_idx in kf.split(X):
+
+        print(f'\n***Iteration {i} Test set Accuracy:')
         
         #make data usable by pytorch
         #train set
@@ -215,14 +206,14 @@ def training(X, y, rf, nb, target_classes):
 
         #model evaluation
         accuracy_nn += accuracy(y_pred_labels.cpu().numpy(), y_test.cpu().numpy())
-
-
+        print(f'\t- NN: {accuracy(y_pred_labels.cpu().numpy(), y_test.cpu().numpy()):.3f}')
 
         #model training rf
         rf.fit(X_train.cpu().numpy(), y_train.cpu().numpy())
         #model testing & evaluation rf
         rf_predictions = rf.predict(X_test.cpu().numpy())
         accuracy_rf += accuracy(rf_predictions, y_test.cpu().numpy())
+        print(f'\t- RF: {accuracy(rf_predictions, y_test.cpu().numpy()):.3f}')
 
 
         #model training naive bayes
@@ -230,19 +221,20 @@ def training(X, y, rf, nb, target_classes):
         #model testing & evaluation rf
         nb_predictions = nb.predict(X_test.cpu().numpy())
         accuracy_nb += accuracy(nb_predictions, y_test.cpu().numpy())
+        print(f'\t- NB: {accuracy(nb_predictions, y_test.cpu().numpy()):.3f}')
         
         write_result(papers_ids.values, y_pred_labels.cpu().numpy(), target_classes, "./output_nn.csv")
         write_result(papers_ids.values, nb_predictions, target_classes, "./output_rf.csv")
         write_result(papers_ids.values, y_pred_labels.cpu().numpy(), target_classes, "./output_nb.csv")
         
+        i += 1
 
-
-    print(f'general accuracy NN: {accuracy_nn/n_splits:.3f}')
-    print(f'general accuracy RF: {accuracy_rf/n_splits:.3f}')
-    print(f'general accuracy NB: {accuracy_nb/n_splits:.3f}')
+    
+    print(f'\n\n**** MEAN ACCURACY')
+    print(f'\t- NN: {accuracy_nn/n_splits:.3f}')
+    print(f'\t- RF: {accuracy_rf/n_splits:.3f}')
+    print(f'\t- NB: {accuracy_nb/n_splits:.3f}')
     clean_result([accuracy_nn, accuracy_rf, accuracy_nb])
-
-    #classes_distribution(data)
 
 
 
@@ -252,9 +244,6 @@ def main():
     #load data
     path_to_data = "./cora.content"
     cora = pd.read_csv(filepath_or_buffer= path_to_data, skiprows = 0, sep = "\t", header = None)
-
-    #take look at the data
-    #print(cora.head())
 
     #classes distribution
     #classes_distribution(cora)
@@ -266,21 +255,16 @@ def main():
     print(cora.head())
 
     #create random forest model
-    rf = RandomForestClassifier(n_estimators= 500, random_state=0, criterion= "gini", min_samples_split = 15)
+    rf = RandomForestClassifier(n_estimators= 1000, random_state=0, criterion= "gini", min_samples_split = 5)
 
     #Naive Bayes classifier
-    nb = BernoulliNB(binarize = None, alpha= 0.0001)
+    nb = BernoulliNB(binarize = None)
 
     #target 
     y = cora["target"]
 
     #features
     X = cora.drop(cora.columns[cora.shape[1]-1], axis = 1)
-
-    #neural networks model
-    #nber_classes = len(target_classes)
-
-    #paper_network = PaperNetwork(X.shape[1]- 2, nber_classes).to(device)
 
     training(X, y, rf, nb, target_classes)
 
